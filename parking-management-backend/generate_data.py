@@ -14,9 +14,9 @@ INSERT IGNORE INTO staff (account_id, address, dob, email, gender, identificatio
 (@staff1, 'Hà Nội', '1995-01-01', 'bot1@test.com', 'MALE', 'BOT109500001', 1, 'Nguyễn Bot 1', '0900000001'),
 (@staff2, 'HCM', '1998-05-05', 'bot2@test.com', 'FEMALE', 'BOT109800002', 1, 'Trần Bot 2', '0900000002');
 
-SET @bike_id = '79906c7a-616c-11f1-88dd-f2c2d9aff02e';
-SET @moto_id = '7990701d-616c-11f1-88dd-f2c2d9aff02e';
-SET @scooter_id = '7990725f-616c-11f1-88dd-f2c2d9aff02e';
+SET @bike_id = (SELECT id FROM vehicle_type WHERE name = 'Bicycle');
+SET @moto_id = (SELECT id FROM vehicle_type WHERE name = 'Motorbike');
+SET @scooter_id = (SELECT id FROM vehicle_type WHERE name = 'Scooter');
 """
 
 vehicle_types = ['Bicycle', 'Motorbike', 'Scooter']
