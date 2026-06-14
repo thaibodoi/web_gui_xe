@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, LogOut, Check, Ban, Search } from "lucide-react";
+import { Loader2, LogOut, Check, Ban, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useFetchWithAuth } from "@/hooks/use-fetch-with-auth";
+import { useConfig } from "@/hooks/use-config";
 import { API_ENDPOINTS, buildApiUrl } from "@/config/api";
 
 // Định nghĩa interface cho kết quả API
@@ -45,7 +46,7 @@ interface ExitResponse {
     licensePlate: string;
     identifier: string;
     card: {
-      cardId: string;
+      cardId: number;
     };
     exitTime: string;
     payment: {
@@ -67,9 +68,13 @@ const formSchema = z
   .object({
     licensePlate: z.string().optional().or(z.literal("")),
     identifier: z.string().optional().or(z.literal("")),
-    cardId: z
-      .string()
-      .min(1, "Mã số thẻ không được để trống"),
+    cardId: z.coerce
+      .number({
+        required_error: "Vui lòng nhập mã số thẻ",
+        invalid_type_error: "Mã số thẻ phải là số",
+      })
+      .min(1, "Mã số thẻ không hợp lệ (phải > 0)")
+      .max(50000, "Mã số thẻ vượt quá giới hạn hệ thống (tối đa 50000)"),
   })
   .refine((data) => data.licensePlate || data.identifier, {
     message: "Vui lòng nhập biển số xe hoặc identifier",
@@ -80,6 +85,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function VehicleExitPage() {
   const { fetchWithAuth, loading: apiLoading } = useFetchWithAuth();
+  const { shiftConfig } = useConfig();
   const [loading, setLoading] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
@@ -106,26 +112,41 @@ export default function VehicleExitPage() {
     fetchActiveRecords();
   }, [fetchWithAuth]);
 
-  const handleSearch = () => {
-    const lp = form.getValues("licensePlate")?.trim().toLowerCase();
-    const iden = form.getValues("identifier")?.trim().toLowerCase();
-    const card = form.getValues("cardId")?.trim().toLowerCase();
+  const handleSearch = async () => {
+    const lp = form.getValues("licensePlate")?.trim();
+    const iden = form.getValues("identifier")?.trim();
+    const card = form.getValues("cardId");
 
     if (!lp && !iden && !card) {
       toast.warning("Vui lòng nhập Biển số, Identifier hoặc Mã thẻ để tìm kiếm!");
       return;
     }
 
-    const found = activeRecords.find(r => 
-      (lp && r.licensePlate?.toLowerCase() === lp) ||
-      (iden && r.identifier?.toLowerCase() === iden) ||
-      (card && r.cardId?.toLowerCase() === card)
-    );
+    // Tải lại danh sách xe mới nhất để đảm bảo không bị sót xe mới vào
+    let currentRecords = activeRecords;
+    try {
+      const apiUrl = buildApiUrl(API_ENDPOINTS.PARKING.RECORDS);
+      const data = await fetchWithAuth<any>(apiUrl);
+      if (data && data.code === 1000) {
+        currentRecords = data.result || [];
+        setActiveRecords(currentRecords);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải lại danh sách xe:", error);
+    }
+
+    const found = currentRecords.find((r: any) => {
+      let isMatch = true;
+      if (lp && r.licensePlate !== lp) isMatch = false;
+      if (iden && r.identifier !== iden) isMatch = false;
+      if (card && r.cardId?.toString() !== card?.toString()) isMatch = false;
+      return isMatch;
+    });
 
     if (found) {
       form.setValue("licensePlate", found.licensePlate || "");
       form.setValue("identifier", found.identifier || "");
-      form.setValue("cardId", found.cardId || "");
+      form.setValue("cardId", found.cardId || ("" as unknown as number));
       
       const typeName = found.vehicleType?.name;
       const vnName = typeName === "Bicycle" ? "Xe đạp" : typeName === "Motorbike" ? "Xe máy" : typeName === "Scooter" ? "Xe tay ga" : typeName;
@@ -144,7 +165,7 @@ export default function VehicleExitPage() {
     defaultValues: {
       licensePlate: "",
       identifier: "",
-      cardId: "",
+      cardId: "" as unknown as number,
     },
     mode: "onSubmit",
   });
@@ -171,35 +192,16 @@ export default function VehicleExitPage() {
     }
   }, [watchIdentifier, form]);
 
-  // Xử lý submit form
+  // Xử lý submit
   const onSubmit = async (values: FormValues) => {
     try {
       setLoading(true);
-
-      // Kiểm tra trước khi gọi API
-      if (!values.cardId) {
-        form.setError("cardId", {
-          type: "manual",
-          message: "Mã số thẻ không được để trống",
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!values.licensePlate && !values.identifier) {
-        form.setError("licensePlate", {
-          type: "manual",
-          message: "Vui lòng nhập biển số xe hoặc identifier",
-        });
-        setLoading(false);
-        return;
-      }
 
       // Chuẩn bị dữ liệu gửi lên server
       const requestBody = {
         licensePlate: values.licensePlate || "",
         identifier: values.identifier || "",
-        cardId: values.cardId ? values.cardId : "",
+        cardId: values.cardId,
       };
 
       // Sử dụng fetchWithAuth
@@ -232,31 +234,8 @@ export default function VehicleExitPage() {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
 
-      if (errorMessage.includes("Status: 400")) {
-        // Kiểm tra thông tin cụ thể để hiển thị lỗi chi tiết
-        if (!form.getValues("cardId")) {
-          form.setError("cardId", {
-            type: "manual",
-            message: "Mã số thẻ không được để trống",
-          });
-        } else if (
-          !form.getValues("licensePlate") &&
-          !form.getValues("identifier")
-        ) {
-          form.setError("licensePlate", {
-            type: "manual",
-            message: "Vui lòng nhập biển số xe hoặc identifier",
-          });
-        } else {
-          setErrorMessage(
-            "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin nhập."
-          );
-          setShowErrorDialog(true);
-        }
-      } else {
-        setErrorMessage("Đã xảy ra lỗi khi ghi nhận xe ra bãi");
-        setShowErrorDialog(true);
-      }
+      setErrorMessage("Đã xảy ra lỗi khi ghi nhận xe ra bãi");
+      setShowErrorDialog(true);
     } finally {
       setLoading(false);
     }
@@ -295,10 +274,18 @@ export default function VehicleExitPage() {
                 xe ra bãi
               </CardDescription>
             </div>
-            <Button type="button" variant="outline" onClick={handleSearch} disabled={isLoading} className="shrink-0">
-              <Search className="h-4 w-4 mr-2" />
-              Tìm xe đang trong bãi
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => {
+                form.reset({ licensePlate: "", identifier: "", cardId: "" as unknown as number });
+                setFoundVehicleType("");
+              }} disabled={isLoading} className="shrink-0" title="Xóa trắng form">
+                <X className="h-4 w-4" />
+              </Button>
+              <Button type="button" variant="outline" onClick={handleSearch} disabled={isLoading} className="shrink-0">
+                <Search className="h-4 w-4 mr-2" />
+                Tìm xe
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -373,9 +360,9 @@ export default function VehicleExitPage() {
                       <FormLabel>Mã số thẻ</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="Nhập mã số thẻ (12 chữ số)"
+                          placeholder="Ví dụ: 1"
                           {...field}
-                          type="text"
+                          type="number"
                           disabled={isLoading}
                           onChange={(e) => {
                             field.onChange(e);
@@ -517,22 +504,24 @@ export default function VehicleExitPage() {
               <Ban className="mr-2 h-5 w-5" />
               Không tìm thấy thông tin xe
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {errorMessage === "Record not found" ? (
-                <div className="space-y-2">
-                  <p>Không tìm thấy thông tin xe trong bãi. Có thể do:</p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>Xe không đang đỗ trong bãi</li>
-                    <li>Thẻ xe không đang được sử dụng</li>
-                    <li>Thông tin biển số/identifier và thẻ xe không khớp</li>
-                  </ul>
-                  <p className="mt-2">
-                    Vui lòng kiểm tra lại thông tin và thử lại.
-                  </p>
-                </div>
-              ) : (
-                <p>{errorMessage || "Đã xảy ra lỗi, vui lòng thử lại"}</p>
-              )}
+            <AlertDialogDescription asChild>
+              <div className="text-sm text-slate-500">
+                {errorMessage === "Record not found" ? (
+                  <div className="space-y-2">
+                    <p>Không tìm thấy thông tin xe trong bãi. Có thể do:</p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Xe không đang đỗ trong bãi</li>
+                      <li>Thẻ xe không đang được sử dụng</li>
+                      <li>Thông tin biển số/identifier và thẻ xe không khớp</li>
+                    </ul>
+                    <p className="mt-2">
+                      Vui lòng kiểm tra lại thông tin và thử lại.
+                    </p>
+                  </div>
+                ) : (
+                  <p>{errorMessage || "Đã xảy ra lỗi, vui lòng thử lại"}</p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `customer` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `parking_card` (
-  `card_id` varchar(20) NOT NULL,
+  `card_id` INT NOT NULL,
   PRIMARY KEY (`card_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS `parking_record_history` (
   `identifier` varchar(50) DEFAULT NULL,
   `license_plate` varchar(20) DEFAULT NULL,
   `type` enum('DAILY','MONTHLY') NOT NULL,
-  `card_id` varchar(20) NOT NULL,
+  `card_id` INT NOT NULL,
   `payment_id` varchar(36) NOT NULL,
   `staff_in` varchar(36) NOT NULL,
   `staff_out` varchar(36) DEFAULT NULL,
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS `parking_record` (
   `identifier` varchar(50) DEFAULT NULL,
   `license_plate` varchar(20) DEFAULT NULL,
   `type` enum('DAILY','MONTHLY') NOT NULL,
-  `card_id` varchar(20) NOT NULL,
+  `card_id` INT NOT NULL,
   `staff_in` varchar(36) NOT NULL,
   `vehicle_type` varchar(36) NOT NULL,
   PRIMARY KEY (`record_id`),

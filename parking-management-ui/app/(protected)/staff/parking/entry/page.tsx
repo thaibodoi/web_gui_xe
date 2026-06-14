@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useFetchWithAuth } from "@/hooks/use-fetch-with-auth";
+import { useConfig } from "@/hooks/use-config";
 import { API_ENDPOINTS, buildApiUrl } from "@/config/api";
 
 // Định nghĩa interface cho loại xe
@@ -68,7 +69,7 @@ interface EntryResponse {
       id: string;
       name: string;
     };
-    cardId: string;
+    cardId: number;
     entryTime: string;
     type: string;
     staffIn: {
@@ -105,6 +106,13 @@ const formSchema = z
       })
       .optional()
       .or(z.literal("")),
+    cardId: z.coerce
+      .number({
+        required_error: "Vui lòng nhập mã số thẻ",
+        invalid_type_error: "Mã số thẻ phải là số",
+      })
+      .min(1, "Mã số thẻ không hợp lệ (phải > 0)")
+      .max(50000, "Mã số thẻ vượt quá giới hạn hệ thống (tối đa 50000)"),
   })
   .refine(
     (data) => {
@@ -123,8 +131,9 @@ const formSchema = z
 type FormValues = z.infer<typeof formSchema>;
 
 export default function VehicleEntryPage() {
-  // Sử dụng hook useFetchWithAuth
+  // Sử dụng hook useFetchWithAuth và useConfig
   const { fetchWithAuth, loading: apiLoading } = useFetchWithAuth();
+  const { shiftConfig } = useConfig();
 
   const [vehicleTypes, setVehicleTypes] = useState<VehicleType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -141,6 +150,7 @@ export default function VehicleEntryPage() {
       vehicleTypeId: "",
       licensePlate: "",
       identifier: "",
+      cardId: "" as unknown as number, // Trick for initial empty state
     },
     mode: "onSubmit",
   });
@@ -243,6 +253,15 @@ export default function VehicleEntryPage() {
 
   // Xử lý submit form
   const onSubmit = async (values: FormValues) => {
+    const maxCards = shiftConfig?.maxParkingCards || 10000;
+    if (values.cardId > maxCards) {
+      form.setError("cardId", {
+        type: "manual",
+        message: `Mã số thẻ phải từ 1 đến ${maxCards}`,
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -251,6 +270,7 @@ export default function VehicleEntryPage() {
         licensePlate: values.licensePlate || "",
         identifier: values.identifier || "",
         vehicleTypeId: values.vehicleTypeId,
+        cardId: values.cardId,
       };
 
       const apiUrl = buildApiUrl(API_ENDPOINTS.PARKING.ENTRY);
@@ -273,6 +293,11 @@ export default function VehicleEntryPage() {
           form.setError("identifier", {
             type: "manual",
             message: "Identifier này đã tồn tại trong bãi",
+          });
+        } else if (data.code === 4005) {
+          form.setError("cardId", {
+            type: "manual",
+            message: "Thẻ này đang được sử dụng",
           });
         } else {
           toast.error(data.message || "Lỗi không xác định");
@@ -420,6 +445,32 @@ export default function VehicleEntryPage() {
                           onFocus={() => {
                             form.clearErrors("identifier");
                             form.clearErrors("licensePlate");
+                          }}
+                        />
+                      </FormControl>
+                      <div className="min-h-[20px]">
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Card ID */}
+                <FormField
+                  control={form.control}
+                  name="cardId"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col h-full">
+                      <FormLabel>Mã số thẻ</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Ví dụ: 1"
+                          {...field}
+                          disabled={isLoading}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            form.clearErrors("cardId");
                           }}
                         />
                       </FormControl>

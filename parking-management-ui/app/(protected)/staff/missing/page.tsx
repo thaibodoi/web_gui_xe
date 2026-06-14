@@ -49,6 +49,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   X,
+  Search,
 } from "lucide-react";
 
 import { useFetchWithAuth } from "@/hooks/use-fetch-with-auth";
@@ -178,6 +179,52 @@ export default function MissingReportPage() {
     MissingReportResponse["result"] | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeRecords, setActiveRecords] = useState<any[]>([]);
+
+  // Fetch active records for auto-fill
+  useEffect(() => {
+    const fetchActiveRecords = async () => {
+      try {
+        const apiUrl = buildApiUrl(API_ENDPOINTS.PARKING.RECORDS);
+        const data = await fetchWithAuth<any>(apiUrl);
+        if (data && data.code === 1000) {
+          setActiveRecords(data.result || []);
+        }
+      } catch (error) {
+        console.error("Lỗi khi tải danh sách xe trong bãi:", error);
+      }
+    };
+    fetchActiveRecords();
+  }, [fetchWithAuth]);
+
+  const handleSearch = () => {
+    const lp = form.getValues("licensePlate")?.trim();
+    const iden = form.getValues("identifier")?.trim();
+
+    if (!lp && !iden) {
+      toast.warning("Vui lòng nhập Biển số xe hoặc Identifier để tìm kiếm!");
+      return;
+    }
+
+    const found = activeRecords.find(r => {
+      let isMatch = true;
+      if (lp && r.licensePlate !== lp) isMatch = false;
+      if (iden && r.identifier !== iden) isMatch = false;
+      return isMatch;
+    });
+
+    if (found) {
+      form.setValue("licensePlate", found.licensePlate || "");
+      form.setValue("identifier", found.identifier || "");
+      if (found.vehicleType?.id) {
+        form.setValue("vehicleTypeId", found.vehicleType.id);
+      }
+      
+      toast.success("Đã tìm thấy xe và tự động điền thông tin cơ bản!");
+    } else {
+      toast.error("Không tìm thấy xe đang trong bãi khớp với thông tin trên!");
+    }
+  };
 
   // Form
   const form = useForm<FormValues>({
@@ -427,12 +474,28 @@ export default function MissingReportPage() {
     <div className="container mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="font-semibold text-2xl">
-            Báo Mất Thẻ Xe
-          </CardTitle>
-          <CardDescription>
-            Vui lòng nhập đầy đủ thông tin để báo mất thẻ xe
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle className="font-semibold text-2xl">
+                Báo Mất Thẻ Xe
+              </CardTitle>
+              <CardDescription>
+                Vui lòng nhập đầy đủ thông tin để báo mất thẻ xe
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => {
+                form.setValue("licensePlate", "");
+                form.setValue("identifier", "");
+              }} disabled={loading} className="shrink-0" title="Xóa tìm kiếm">
+                <X className="h-4 w-4" />
+              </Button>
+              <Button type="button" variant="outline" onClick={handleSearch} disabled={loading} className="shrink-0">
+                <Search className="h-4 w-4 mr-2" />
+                Tìm xe
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {error && (

@@ -18,5 +18,5 @@ import lombok.NoArgsConstructor;
 public class ParkingCard {
     @Id
     @Column(name = "card_id")
-    private String cardId;
+    private Integer cardId;
 }

@@ -7,23 +7,34 @@ import { Loader2, Save, Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Database } from "lucide-react";
 
 export default function ShiftsSettingsPage() {
   const { shiftConfig, loading, updating, updateShiftConfig } = useConfig();
   const [dayStart, setDayStart] = useState<string>("5");
   const [nightStart, setNightStart] = useState<string>("18");
+  const [maxCards, setMaxCards] = useState<string>("10000");
 
   useEffect(() => {
     if (shiftConfig) {
       setDayStart(shiftConfig.dayShiftStartHour.toString());
       setNightStart(shiftConfig.nightShiftStartHour.toString());
+      setMaxCards(shiftConfig.maxParkingCards?.toString() || "10000");
     }
   }, [shiftConfig]);
 
   const handleSave = async () => {
+    const parsedMaxCards = parseInt(maxCards);
+    if (parsedMaxCards > 50000) {
+      toast.error("Vui lòng đặt giới hạn không vượt quá 50.000 thẻ để đảm bảo hiệu năng.");
+      return;
+    }
+    
     await updateShiftConfig({
       dayShiftStartHour: parseInt(dayStart),
       nightShiftStartHour: parseInt(nightStart),
+      maxParkingCards: parsedMaxCards || 10000,
     });
   };
 
@@ -109,8 +120,39 @@ export default function ShiftsSettingsPage() {
             </ul>
           </div>
         </CardContent>
+      </Card>
+
+      <Card className="border-t-4 border-t-primary shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5 text-primary" />
+            Dữ liệu hệ thống
+          </CardTitle>
+          <CardDescription>
+            Cài đặt giới hạn số lượng thẻ xe của bãi. Hệ thống sẽ tự động tạo thêm thẻ nếu bạn tăng giới hạn này.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 p-4 bg-emerald-50 rounded-lg border border-emerald-100 max-w-sm">
+            <div className="space-y-1">
+              <Label htmlFor="maxCards" className="text-emerald-800 font-semibold flex items-center gap-2">
+                <span className="text-xl">💳</span> Giới hạn thẻ xe
+              </Label>
+              <p className="text-xs text-emerald-600/80">Nhập số lượng thẻ tối đa.</p>
+            </div>
+            <Input 
+              id="maxCards" 
+              type="number" 
+              min="1" 
+              max="50000"
+              className="bg-white" 
+              value={maxCards} 
+              onChange={(e) => setMaxCards(e.target.value)} 
+            />
+          </div>
+        </CardContent>
         <CardFooter className="bg-slate-50 border-t px-6 py-4 flex justify-end">
-          <Button onClick={handleSave} disabled={updating || (shiftConfig?.dayShiftStartHour.toString() === dayStart && shiftConfig?.nightShiftStartHour.toString() === nightStart)}>
+          <Button onClick={handleSave} disabled={updating || (shiftConfig?.dayShiftStartHour.toString() === dayStart && shiftConfig?.nightShiftStartHour.toString() === nightStart && shiftConfig?.maxParkingCards?.toString() === maxCards)}>
             {updating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

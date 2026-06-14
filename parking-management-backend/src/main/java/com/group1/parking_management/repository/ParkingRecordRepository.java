@@ -11,7 +11,7 @@ import com.group1.parking_management.entity.ParkingRecord;
 
 @Repository
 public interface ParkingRecordRepository extends JpaRepository<ParkingRecord, String> {
-    boolean existsByCard_CardId(String cardId);
+    boolean existsByCard_CardId(Integer cardId);
 
     boolean existsByLicensePlate(String licensePlate);
 
@@ -21,9 +21,9 @@ public interface ParkingRecordRepository extends JpaRepository<ParkingRecord, St
 
     Optional<ParkingRecord> findByIdentifier(String identifier);
 
-    Optional<ParkingRecord> findByLicensePlateAndCard_CardId(String licensePlate, String cardId);
+    Optional<ParkingRecord> findByLicensePlateAndCard_CardId(String licensePlate, Integer cardId);
 
-    Optional<ParkingRecord> findByIdentifierAndCard_CardId(String identifier, String cardId);
+    Optional<ParkingRecord> findByIdentifierAndCard_CardId(String identifier, Integer cardId);
 
     List<ParkingRecord> findByEntryTimeBetween(LocalDateTime start, LocalDateTime end);
 

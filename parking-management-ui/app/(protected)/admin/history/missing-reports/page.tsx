@@ -300,9 +300,9 @@ export default function MissingReportsPage() {
     <div className="w-full px-4 py-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Lịch sử báo cáo mất xe</h1>
+        <h1 className="text-3xl font-bold mb-2">Lịch sử báo cáo mất thẻ xe</h1>
         <p className="text-gray-500">
-          Danh sách các báo cáo mất xe đã được ghi nhận trong hệ thống
+          Danh sách các báo cáo mất thẻ xe đã được ghi nhận trong hệ thống
         </p>
       </div>
 
@@ -394,12 +394,12 @@ export default function MissingReportsPage() {
               <CardTitle>
                 {isSearching
                   ? `Kết quả tìm kiếm (${filteredReports.length})`
-                  : `Danh sách báo cáo mất xe (${reports.length})`}
+                  : `Danh sách báo cáo mất thẻ xe (${reports.length})`}
               </CardTitle>
               <CardDescription>
                 {isSearching
                   ? `Đang hiển thị kết quả tìm kiếm cho "${searchTerm}"`
-                  : "Danh sách tất cả báo cáo mất xe theo thứ tự thời gian gần đây nhất"}
+                  : "Danh sách tất cả báo cáo mất thẻ xe theo thứ tự thời gian gần đây nhất"}
               </CardDescription>
             </div>
 
@@ -469,7 +469,7 @@ export default function MissingReportsPage() {
                     <TableCell colSpan={9} className="text-center py-10">
                       <div className="flex flex-col items-center justify-center">
                         <FileText className="h-10 w-10 mb-2 opacity-20" />
-                        <span>Không tìm thấy báo cáo mất xe nào</span>
+                        <span>Không tìm thấy báo cáo mất thẻ xe nào</span>
                         {isSearching && (
                           <div className="flex items-center gap-2 mt-4">
                             <Button
@@ -654,9 +654,9 @@ export default function MissingReportsPage() {
       <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chi tiết báo cáo mất xe</DialogTitle>
+            <DialogTitle>Chi tiết báo cáo mất thẻ xe</DialogTitle>
             <DialogDescription>
-              Thông tin chi tiết về báo cáo mất xe
+              Thông tin chi tiết về báo cáo mất thẻ xe
             </DialogDescription>
           </DialogHeader>
 
@@ -750,14 +750,16 @@ export default function MissingReportsPage() {
 
                     <div className="text-slate-500">Mã thẻ:</div>
                     <div className="font-medium col-span-2">
-                      {selectedReport.record.card.cardId}
+                      {selectedReport.record?.card?.cardId || "Không có"}
                     </div>
 
                     <div className="text-slate-500">Loại vé:</div>
                     <div className="font-medium col-span-2">
-                      {selectedReport.record.type === "DAILY"
+                      {selectedReport.record?.type === "DAILY"
                         ? "Vé ngày"
-                        : "Vé tháng"}
+                        : selectedReport.record?.type === "MONTHLY"
+                        ? "Vé tháng"
+                        : "Không có"}
                     </div>
                   </div>
                 </div>
@@ -771,7 +773,7 @@ export default function MissingReportsPage() {
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div className="text-slate-500">Thời gian gửi xe:</div>
                     <div className="font-medium col-span-2">
-                      {formatDateTime(selectedReport.record.entryTime)}
+                      {selectedReport.record?.entryTime ? formatDateTime(selectedReport.record.entryTime) : "Không có"}
                     </div>
 
                     <div className="text-slate-500">Thời gian báo mất:</div>
@@ -781,10 +783,10 @@ export default function MissingReportsPage() {
 
                     <div className="text-slate-500">Thời gian gửi:</div>
                     <div className="font-medium col-span-2">
-                      {calculateParkingDuration(
+                      {selectedReport.record?.entryTime && selectedReport.record?.exitTime ? calculateParkingDuration(
                         selectedReport.record.entryTime,
                         selectedReport.record.exitTime
-                      )}
+                      ) : "Không có"}
                     </div>
                   </div>
                 </div>

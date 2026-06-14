@@ -224,24 +224,6 @@ export default function ListActiveMonthlyCards() {
     setSortOption(sort);
   };
 
-  // Lấy icon cho loại xe
-  const getVehicleTypeIcon = (typeName: string) => {
-    switch (typeName) {
-      case "Bicycle":
-        return <MaterialIcon icon="pedal_bike" className="text-yellow-700" />;
-      case "Motorbike":
-        return <MaterialIcon icon="motorcycle" className="text-blue-700" />;
-      case "Scooter":
-        return (
-          <MaterialIcon icon="electric_scooter" className="text-green-700" />
-        );
-      default:
-        return (
-          <MaterialIcon icon="directions_car" className="text-slate-700" />
-        );
-    }
-  };
-
   // Lấy màu cho loại xe
   const getVehicleTypeColor = (typeName: string) => {
     switch (typeName) {
@@ -489,17 +471,14 @@ export default function ListActiveMonthlyCards() {
                               card.vehicle.type.name
                             )}
                           >
-                            <span className="flex items-center">
-                              {getVehicleTypeIcon(card.vehicle.type.name)}
-                              <span className="ml-1">
-                                {card.vehicle.type.name === "Bicycle"
-                                  ? "Xe đạp"
-                                  : card.vehicle.type.name === "Motorbike"
-                                  ? "Xe máy"
-                                  : card.vehicle.type.name === "Scooter"
-                                  ? "Xe tay ga"
-                                  : card.vehicle.type.name}
-                              </span>
+                            <span>
+                              {card.vehicle.type.name === "Bicycle"
+                                ? "Xe đạp"
+                                : card.vehicle.type.name === "Motorbike"
+                                ? "Xe máy"
+                                : card.vehicle.type.name === "Scooter"
+                                ? "Xe tay ga"
+                                : card.vehicle.type.name}
                             </span>
                           </Badge>
                         </div>
@@ -684,17 +663,14 @@ export default function ListActiveMonthlyCards() {
                           selectedCard.vehicle.type.name
                         )}
                       >
-                        <span className="flex items-center">
-                          {getVehicleTypeIcon(selectedCard.vehicle.type.name)}
-                          <span className="ml-1">
-                            {selectedCard.vehicle.type.name === "Bicycle"
-                              ? "Xe đạp"
-                              : selectedCard.vehicle.type.name === "Motorbike"
-                              ? "Xe máy"
-                              : selectedCard.vehicle.type.name === "Scooter"
-                              ? "Xe tay ga"
-                              : selectedCard.vehicle.type.name}
-                          </span>
+                        <span>
+                          {selectedCard.vehicle.type.name === "Bicycle"
+                            ? "Xe đạp"
+                            : selectedCard.vehicle.type.name === "Motorbike"
+                            ? "Xe máy"
+                            : selectedCard.vehicle.type.name === "Scooter"
+                            ? "Xe tay ga"
+                            : selectedCard.vehicle.type.name}
                         </span>
                       </Badge>
                     </div>

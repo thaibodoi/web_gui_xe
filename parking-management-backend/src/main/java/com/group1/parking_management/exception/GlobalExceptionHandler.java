@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
                 .status(errorCode.getStatusCode())
                 .body(ApiResponse.<Void>builder()
                         .code(errorCode.getCode())
-                        .message(errorCode.getMessage())
+                        .message(exception.getMessage())
                         .build());
     }
 

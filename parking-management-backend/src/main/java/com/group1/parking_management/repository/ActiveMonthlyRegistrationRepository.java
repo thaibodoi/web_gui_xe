@@ -18,6 +18,16 @@ public interface ActiveMonthlyRegistrationRepository extends JpaRepository<Activ
         WHERE v.licensePlate = :licensePlate
     """)
     boolean existsByLicensePlate(@Param("licensePlate") String licensePlate);
+    
+    ActiveMonthlyRegistration findFirstByVehicle_LicensePlate(String licensePlate);
+    
+    @Query("""
+        SELECT COUNT(a) > 0 FROM ActiveMonthlyRegistration a
+        JOIN a.vehicle v
+        WHERE v.licensePlate = :licensePlate AND v.type.id = :vehicleTypeId
+    """)
+    boolean existsByLicensePlateAndVehicleTypeId(@Param("licensePlate") String licensePlate, @Param("vehicleTypeId") String vehicleTypeId);
+
     boolean existsByVehicle(Vehicle vehicle);
     List<ActiveMonthlyRegistration> findAllByOrderByIssueDateDesc();
 }

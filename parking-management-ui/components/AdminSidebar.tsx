@@ -143,7 +143,7 @@ const AdminSidebar = ({ isMobile = false }: AdminSidebarProps) => {
                     handleNavigation("/admin/history/missing-reports")
                   }
                 >
-                  Báo cáo mất xe
+                  Báo cáo mất thẻ xe
                 </div>
 
                 <div

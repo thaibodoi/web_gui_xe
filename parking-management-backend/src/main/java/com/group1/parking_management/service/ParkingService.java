@@ -20,6 +20,7 @@ public interface ParkingService {
     ParkingEntryResponse registerEntry(ParkingEntryRequest request);
     public ParkingExitResponse processExit(ParkingExitRequest request);
     public List<ParkingEntryResponse> getAllRecordInParking();
+    public ParkingEntryResponse updateCardId(String recordId, Integer newCardId);
     public ParkingRecordHistory recordToHistory(ParkingRecord record, Payment payment, Account staff);
     public List<VehicleTypeResponse> getAllVehicleType();
     public List<TodayTrafficResponse> getTodayTraffic();

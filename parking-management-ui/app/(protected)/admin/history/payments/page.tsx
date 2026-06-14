@@ -10,6 +10,7 @@ import {
   Clock,
   FileText,
   Loader2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -242,6 +243,32 @@ export default function PaymentHistoryPage() {
   const monthlyPayments = payments.filter((p) => p.paymentType === "MONTHLY");
   const missingPayments = payments.filter((p) => p.paymentType === "MISSING");
 
+  // Hàm xuất Excel (CSV)
+  const exportToExcel = () => {
+    if (filteredPayments.length === 0) {
+      toast.error("Không có dữ liệu để xuất");
+      return;
+    }
+    const headers = ["STT", "Thời gian", "Số tiền (VNĐ)", "Loại giao dịch"];
+    const rows = filteredPayments.map((payment, index) => {
+      const time = formatDateTime(payment.createAt);
+      const amount = payment.amount;
+      const type = payment.paymentType === "PARKING" ? "Thẻ ngày" : 
+                   payment.paymentType === "MONTHLY" ? "Thẻ tháng" : 
+                   payment.paymentType === "MISSING" ? "Mất thẻ" : payment.paymentType;
+      return [index + 1, time, amount, type];
+    });
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers.join(",") + "\n" + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `lich_su_thanh_toan.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Đã xuất file Excel thành công");
+  };
+
   return (
     <div className="w-full px-4 py-6">
       {/* Header */}
@@ -392,7 +419,11 @@ export default function PaymentHistoryPage() {
               </CardDescription>
             </div>
 
-            <div className="mt-4 lg:mt-0">
+            <div className="mt-4 lg:mt-0 flex gap-3 items-center">
+              <Button onClick={exportToExcel} variant="outline" className="flex items-center gap-2 bg-green-50 text-green-700 hover:bg-green-100 border-green-200">
+                <Download className="h-4 w-4" />
+                Xuất Excel
+              </Button>
               <Select
                 value={paymentTypeFilter}
                 onValueChange={(value) =>

@@ -38,7 +38,7 @@ CREATE PROCEDURE create_parking_cards()
 BEGIN
     DECLARE i INT DEFAULT 1;
     
-    WHILE i <= 999 DO
+    WHILE i <= 10000 DO
         INSERT IGNORE INTO parking_card (card_id) VALUES (i);
         SET i = i + 1;
     END WHILE;

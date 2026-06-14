@@ -6,6 +6,7 @@ import { toast } from "sonner";
 export interface ShiftConfig {
   dayShiftStartHour: number;
   nightShiftStartHour: number;
+  maxParkingCards: number;
 }
 
 interface ApiResponse<T> {
@@ -55,7 +56,7 @@ export function useConfig() {
 
       if (data?.code === 1000) {
         setShiftConfig(data.result);
-        toast.success("Cập nhật giờ làm việc thành công");
+        toast.success("Cập nhật cấu hình hệ thống thành công");
         return true;
       } else {
         toast.error("Cập nhật thất bại: " + (data?.message || "Lỗi không xác định"));

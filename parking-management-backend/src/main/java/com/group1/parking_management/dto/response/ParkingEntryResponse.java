@@ -22,7 +22,7 @@ public class ParkingEntryResponse {
     private String licensePlate;
     private String identifier;
     private VehicleType vehicleType;
-    private String cardId;
+    private Integer cardId;
     private LocalDateTime entryTime;
     private ParkingType type;
     private Account staffIn;

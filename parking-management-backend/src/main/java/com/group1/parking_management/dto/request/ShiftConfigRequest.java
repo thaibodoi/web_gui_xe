@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class ShiftConfigRequest {
     private int dayShiftStartHour;
     private int nightShiftStartHour;
+    private int maxParkingCards;
 }

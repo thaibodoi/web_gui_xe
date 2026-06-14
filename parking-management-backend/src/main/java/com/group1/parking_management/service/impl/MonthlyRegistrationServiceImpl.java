@@ -38,6 +38,7 @@ import com.group1.parking_management.service.MonthlyRegistrationService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.group1.parking_management.factory.CustomerFactory;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +55,7 @@ public class MonthlyRegistrationServiceImpl implements MonthlyRegistrationServic
     private final StudentRepository studentRepository;
     private final PaymentRepository paymentRepository;
     private final MonthlyRegistrationMapper monthlyRegistrationMapper;
+    private final List<CustomerFactory> customerFactories;
 
     @Override
     @Transactional
@@ -85,20 +87,11 @@ public class MonthlyRegistrationServiceImpl implements MonthlyRegistrationServic
                 .email(request.getEmail())
                 .build());
 
-        if (request.getCustomerType() == CustomerType.LECTURER) {
-            lecturerRepository.save(LecturerInformation.builder()
-                    .customer(customer)
-                    .lecturerId(request.getLecturerId())
-                    .build());
-        } else {
-            studentRepository.save(StudentInformation.builder()
-                    .customer(customer)
-                    .studentId(request.getStudentId())
-                    .faculty(request.getFaculty())
-                    .major(request.getMajor())
-                    .classInfo(request.getClassInfo())
-                    .build());
-        }
+        customerFactories.stream()
+                .filter(factory -> factory.supports(request.getCustomerType()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.SYSTEM_INTERNAL_ERROR))
+                .createCustomerInfo(customer, request);
 
         Price price = priceRepository.findById(vehicleType.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.PARKING_PRICE_NOT_FOUND));

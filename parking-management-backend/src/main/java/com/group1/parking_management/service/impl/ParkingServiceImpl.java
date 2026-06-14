@@ -22,6 +22,7 @@ import com.group1.parking_management.dto.response.ParkingEntryResponse;
 import com.group1.parking_management.dto.response.ParkingExitResponse;
 import com.group1.parking_management.dto.response.VehicleTypeResponse;
 import com.group1.parking_management.entity.Account;
+import com.group1.parking_management.entity.ActiveMonthlyRegistration;
 import com.group1.parking_management.entity.ParkingCard;
 import com.group1.parking_management.entity.ParkingRecord;
 import com.group1.parking_management.entity.ParkingRecordHistory;
@@ -43,6 +44,8 @@ import com.group1.parking_management.repository.PriceRepository;
 import com.group1.parking_management.repository.VehicleTypeRepository;
 import com.group1.parking_management.service.ConfigService;
 import com.group1.parking_management.service.ParkingService;
+import com.group1.parking_management.strategy.ParkingFeeStrategy;
+import com.group1.parking_management.util.SystemLogger;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +66,7 @@ public class ParkingServiceImpl implements ParkingService {
     private final VehicleTypeMapper vehicleTypeMapper;
     private final MissingReportRepository missingReportRepository;
     private final ConfigService configService;
+    private final List<ParkingFeeStrategy> feeStrategies;
 
     @Override
     @Transactional
@@ -90,15 +94,29 @@ public class ParkingServiceImpl implements ParkingService {
         }
 
         boolean hasMonthlyCard = activeMonthlyRegistrationRepository.existsByLicensePlate(request.getLicensePlate());
+        String finalVehicleTypeId = request.getVehicleTypeId();
+
+        if (hasMonthlyCard) {
+            boolean isVehicleTypeMatch = activeMonthlyRegistrationRepository.existsByLicensePlateAndVehicleTypeId(
+                request.getLicensePlate(), request.getVehicleTypeId());
+            if (!isVehicleTypeMatch) {
+                ActiveMonthlyRegistration reg = activeMonthlyRegistrationRepository.findFirstByVehicle_LicensePlate(request.getLicensePlate());
+                if (reg != null && reg.getVehicle() != null && reg.getVehicle().getType() != null) {
+                    finalVehicleTypeId = reg.getVehicle().getType().getId();
+                }
+            }
+        }
+        
         ParkingType parkingType = hasMonthlyCard ? ParkingType.MONTHLY : ParkingType.DAILY;
 
-        String cardId = LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("ssmmHHddMMyy"));
-        
-        ParkingCard parkingCard = new ParkingCard();
-        parkingCard.setCardId(cardId);
-        parkingCard = parkingCardRepository.save(parkingCard);
+        if (parkingRecordRepository.existsByCard_CardId(request.getCardId())) {
+            throw new AppException(ErrorCode.PARKING_CARD_IN_USED);
+        }
 
-        VehicleType vehicleType = vehicleTypeRepository.findById(request.getVehicleTypeId())
+        ParkingCard parkingCard = parkingCardRepository.findById(request.getCardId())
+                .orElseThrow(() -> new AppException(ErrorCode.PARKING_CARD_NOT_FOUND));
+
+        VehicleType vehicleType = vehicleTypeRepository.findById(finalVehicleTypeId)
                 .orElseThrow(() -> new AppException(ErrorCode.PARKING_VEHICLE_TYPE_NOT_FOUND));
 
         ParkingRecord parkingRecord = ParkingRecord.builder()
@@ -126,7 +144,7 @@ public class ParkingServiceImpl implements ParkingService {
             throw new AppException(ErrorCode.PARKING_IDENTIFICATION_ERROR);
         }
 
-        String cardId = request.getCardId();
+        Integer cardId = request.getCardId();
 
         Optional<ParkingRecord> parkingRecordOpt = StringUtils.hasText(request.getLicensePlate())
                 ? parkingRecordRepository.findByLicensePlateAndCard_CardId(request.getLicensePlate(), cardId)
@@ -158,58 +176,35 @@ public class ParkingServiceImpl implements ParkingService {
                 .map(recordMapper::toParkingEntryResponse).toList();
     }
 
-    public int calculateParkingFee(ParkingRecord record) {
-        Price price = priceRepository.findById(record.getVehicleType().getId())
-                .orElseThrow(() -> new AppException(ErrorCode.PARKING_PRICE_NOT_FOUND));
-        LocalDateTime entryTime = record.getEntryTime();
-        LocalDateTime exitTime = LocalDateTime.now();
-        Duration duration = Duration.between(entryTime, exitTime);
-        long days = duration.toDays();
-        boolean isOver24h = duration.toDays() >= 1;
+    @Override
+    @Transactional
+    @PreAuthorize("hasRole('STAFF')")
+    public ParkingEntryResponse updateCardId(String recordId, Integer newCardId) {
+        ParkingRecord record = parkingRecordRepository.findById(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.PARKING_RECORD_NOT_FOUND));
 
-        int fee;
-        if (record.getType() == ParkingType.MONTHLY) {
-            fee = 0;
-        } else {
-            long fullDays = duration.toDays();
-            fee = (int) (fullDays * (price.getDayPrice() + price.getNightPrice()));
-            
-            Duration remainingDuration = duration.minusDays(fullDays);
-            
-            if (remainingDuration.toMinutes() > 0 || fullDays == 0) {
-                LocalDateTime remainingEntry = entryTime.plusDays(fullDays);
-                int remainFee = 0;
-                
-                boolean isDayTimeEntry = remainingEntry.getHour() >= configService.getShiftConfig().getDayShiftStartHour() 
-                        && remainingEntry.getHour() < configService.getShiftConfig().getNightShiftStartHour();
-                boolean isDayTimeExit = exitTime.getHour() >= configService.getShiftConfig().getDayShiftStartHour() 
-                        && exitTime.getHour() < configService.getShiftConfig().getNightShiftStartHour();
-                boolean isSameDay = remainingEntry.toLocalDate().equals(exitTime.toLocalDate());
-                
-                if (isSameDay) {
-                    if (isDayTimeEntry && isDayTimeExit) {
-                        remainFee = price.getDayPrice();
-                    } else if (!isDayTimeEntry && !isDayTimeExit) {
-                        remainFee = price.getNightPrice();
-                    } else {
-                        remainFee = price.getDayPrice() + price.getNightPrice();
-                    }
-                } else {
-                    int dayLength = configService.getShiftConfig().getNightShiftStartHour() - configService.getShiftConfig().getDayShiftStartHour();
-                    if (dayLength < 0) dayLength += 24;
-                    
-                    if (!isDayTimeEntry && !isDayTimeExit && remainingDuration.toHours() < (24 - dayLength)) {
-                        remainFee = price.getNightPrice();
-                    } else {
-                        remainFee = price.getDayPrice() + price.getNightPrice();
-                    }
-                }
-                
-                fee += remainFee;
-            }
+        if (record.getCard().getCardId().equals(newCardId)) {
+            return recordMapper.toParkingEntryResponse(record);
         }
 
-        return fee;
+        if (parkingRecordRepository.existsByCard_CardId(newCardId)) {
+            throw new AppException(ErrorCode.PARKING_CARD_IN_USED);
+        }
+
+        ParkingCard newCard = parkingCardRepository.findById(newCardId)
+                .orElseThrow(() -> new AppException(ErrorCode.PARKING_CARD_NOT_FOUND));
+
+        record.setCard(newCard);
+        return recordMapper.toParkingEntryResponse(parkingRecordRepository.save(record));
+    }
+
+    public int calculateParkingFee(ParkingRecord record) {
+        SystemLogger.getInstance().log("Calculating fee for record: " + record.getRecordId());
+        return feeStrategies.stream()
+                .filter(strategy -> strategy.supports(record.getType()))
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.SYSTEM_INTERNAL_ERROR))
+                .calculateFee(record);
     }
 
     public ParkingRecordHistory recordToHistory(ParkingRecord record, Payment payment, Account staff) {
