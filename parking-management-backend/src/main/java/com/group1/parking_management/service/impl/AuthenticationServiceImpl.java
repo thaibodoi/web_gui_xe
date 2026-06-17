@@ -84,7 +84,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .dob(staff.getDob())
                 .gender(staff.getGender())
                 .phoneNumber(staff.getPhoneNumber())
-                .address(staff.getEmail())
+                .address(staff.getAddress())
                 .email(staff.getEmail())
                 .build();
     }
