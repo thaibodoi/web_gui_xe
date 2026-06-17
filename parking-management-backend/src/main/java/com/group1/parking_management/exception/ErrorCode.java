@@ -45,6 +45,8 @@ public enum ErrorCode {
     PARKING_RECORD_NOT_FOUND(4008, "Record not found", HttpStatus.NOT_FOUND),
     PARKING_PRICE_NOT_FOUND(4009, "Price not found", HttpStatus.NOT_FOUND),
     VEHICLE_BLACKLISTED(4010, "Vehicle is blacklisted due to missing report", HttpStatus.BAD_REQUEST),
+    PARKING_CARD_LIMIT_IN_USE(4011, "Khong the giam gioi han: van con the vuot muc dang co xe do", HttpStatus.BAD_REQUEST),
+    PARKING_CARD_EXCEEDS_LIMIT(4012, "Ma the vuot qua gioi han so the cua bai xe", HttpStatus.BAD_REQUEST),
 
     // Monthly Registration
     MONTHLY_CUSTOMER_TYPE_INVALID(5001, "Customer type invalid", HttpStatus.BAD_REQUEST),
