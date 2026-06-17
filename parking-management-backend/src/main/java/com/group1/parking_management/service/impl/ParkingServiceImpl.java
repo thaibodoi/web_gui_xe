@@ -113,6 +113,12 @@ public class ParkingServiceImpl implements ParkingService {
             throw new AppException(ErrorCode.PARKING_CARD_IN_USED);
         }
 
+        // Chặn thẻ vượt giới hạn số thẻ của bãi (áp dụng giới hạn cấu hình ở Cài đặt)
+        int maxCards = configService.getShiftConfig().getMaxParkingCards();
+        if (request.getCardId() != null && request.getCardId() > maxCards) {
+            throw new AppException(ErrorCode.PARKING_CARD_EXCEEDS_LIMIT);
+        }
+
         ParkingCard parkingCard = parkingCardRepository.findById(request.getCardId())
                 .orElseThrow(() -> new AppException(ErrorCode.PARKING_CARD_NOT_FOUND));
 
