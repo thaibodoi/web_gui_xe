@@ -1,13 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import Navbar from "@/components/Navbar";
 import StaffSidebar from "@/components/StaffSidebar";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const StaffLayout = ({ children }: { children: React.ReactNode }) => {
+  const router = useRouter();
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
+  // ===== Người gác cổng: chặn khi chưa đăng nhập =====
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const token = Cookies.get("authToken") || localStorage.getItem("token");
+
+    if (!token) {
+      // Chưa đăng nhập -> về trang login
+      router.replace("/login");
+      return;
+    }
+
+    setAuthorized(true);
+  }, [router]);
+  // ===================================================
 
   // Xử lý sự kiện đóng sidebar khi click vào menu item trên mobile
   useEffect(() => {
@@ -21,6 +40,9 @@ const StaffLayout = ({ children }: { children: React.ReactNode }) => {
       document.removeEventListener("closeMobileSidebar", handleCloseSidebar);
     };
   }, []);
+
+  // Chưa xác thực xong thì không render nội dung
+  if (!authorized) return null;
 
   return (
     <>
