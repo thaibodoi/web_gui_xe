@@ -13,6 +13,9 @@ import com.group1.parking_management.entity.ParkingRecord;
 public interface ParkingRecordRepository extends JpaRepository<ParkingRecord, String> {
     boolean existsByCard_CardId(Integer cardId);
 
+    // Có thẻ nào với cardId > giá trị truyền vào đang được dùng (đang có xe đỗ) không?
+    boolean existsByCard_CardIdGreaterThan(Integer cardId);
+
     boolean existsByLicensePlate(String licensePlate);
 
     boolean existsByIdentifier(String identifier);
