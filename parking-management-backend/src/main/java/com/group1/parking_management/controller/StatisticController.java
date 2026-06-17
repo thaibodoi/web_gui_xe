@@ -1,5 +1,6 @@
 package com.group1.parking_management.controller;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/statistic")
+@PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được xem thống kê (nhân viên bị chặn)
 @RequiredArgsConstructor
 public class StatisticController {
     private final StatisticService revenueService;
@@ -30,5 +32,5 @@ public class StatisticController {
         return ApiResponse.<TrafficStatisticResponse>builder()
                 .result(revenueService.getMonthlyTraffic(month, year))
                 .build();
-    } 
+    }
 }
