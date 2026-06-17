@@ -2,6 +2,7 @@ package com.group1.parking_management.controller;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -30,6 +31,7 @@ public class PriceController {
     }
 
     @PutMapping("{vehicleType}")
+    @PreAuthorize("hasRole('ADMIN')") // Chỉ ADMIN mới được sửa bảng giá (nhân viên bị chặn)
     public ApiResponse<PriceResponse> updatePrice(@PathVariable String vehicleType, @RequestBody ChangePriceRequest request) {
         return ApiResponse.<PriceResponse>builder()
                 .result(priceService.updatePrice(vehicleType, request))
