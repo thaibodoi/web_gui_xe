@@ -30,6 +30,9 @@ export function useDashboard(itemsPerPage = 5) {
   const [recentActivity, setRecentActivity] = useState<VehicleRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // TỔNG số xe đang thực sự trong bãi (gồm cả xe vào từ hôm trước chưa ra)
+  const [inParkingCount, setInParkingCount] = useState(0);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -60,6 +63,25 @@ export function useDashboard(itemsPerPage = 5) {
         // Tính toán số lượng xe hiện tại từ dữ liệu API
         const stats = calculateVehicleStats(data.result);
         setCurrentStats(stats);
+
+        // Lấy TỔNG số xe đang trong bãi (mọi ngày) từ danh sách xe đang đỗ.
+        // Đây mới là con số thực tế trong bãi, không chỉ tính theo hôm nay.
+        try {
+          const recordsUrl = buildApiUrl(API_ENDPOINTS.PARKING.RECORDS);
+          const recordsData = await fetchWithAuth<{
+            code: number;
+            result: unknown[];
+          }>(recordsUrl);
+          if (
+            recordsData &&
+            recordsData.code === 1000 &&
+            Array.isArray(recordsData.result)
+          ) {
+            setInParkingCount(recordsData.result.length);
+          }
+        } catch (e) {
+          console.error("Lỗi khi lấy tổng xe trong bãi:", e);
+        }
       } else {
         throw new Error(
           "Lỗi khi lấy dữ liệu: " + (data.message || "Không xác định")
@@ -209,6 +231,7 @@ export function useDashboard(itemsPerPage = 5) {
     loading: loading || fetchLoading,
     error,
     currentStats,
+    inParkingCount,
     recentActivity,
     currentPage,
     totalPages,

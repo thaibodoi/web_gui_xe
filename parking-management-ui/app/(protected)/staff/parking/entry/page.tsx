@@ -34,6 +34,7 @@ import {
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -139,6 +140,8 @@ export default function VehicleEntryPage() {
   const [loading, setLoading] = useState(false);
   const [fetchingTypes, setFetchingTypes] = useState(true);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingValues, setPendingValues] = useState<FormValues | null>(null);
   const [entryRecord, setEntryRecord] = useState<
     EntryResponse["result"] | null
   >(null);
@@ -169,11 +172,10 @@ export default function VehicleEntryPage() {
   // Kiểm tra nếu xe máy hoặc xe tay ga
   const isMotorizedVehicle =
     vehicleTypes.find((type) => type.id === watchVehicleTypeId)?.name ===
-      "Motorbike" ||
+    "Motorbike" ||
     vehicleTypes.find((type) => type.id === watchVehicleTypeId)?.name ===
-      "Scooter" ||
-    vehicleTypes.find((type) => type.id === watchVehicleTypeId)?.name ===
-      "Car";
+    "Scooter" ||
+    vehicleTypes.find((type) => type.id === watchVehicleTypeId)?.name === "Car";
 
   // useEffects để xử lý ràng buộc giữa các trường
   useEffect(() => {
@@ -251,7 +253,7 @@ export default function VehicleEntryPage() {
     fetchVehicleTypes();
   }, [form, fetchWithAuth]);
 
-  // Xử lý submit form
+  // Bước 1: bấm "Ghi nhận" -> chỉ MỞ hộp xác nhận, CHƯA gửi lên server
   const onSubmit = async (values: FormValues) => {
     const maxCards = shiftConfig?.maxParkingCards || 10000;
     if (values.cardId > maxCards) {
@@ -261,6 +263,15 @@ export default function VehicleEntryPage() {
       });
       return;
     }
+    setPendingValues(values);
+    setShowConfirmDialog(true);
+  };
+
+  // Bước 2: bấm "Xác nhận" trong hộp thoại -> mới thực sự gửi lên server
+  const handleConfirmedSubmit = async () => {
+    if (!pendingValues) return;
+    const values = pendingValues;
+    setShowConfirmDialog(false);
 
     try {
       setLoading(true);
@@ -499,6 +510,52 @@ export default function VehicleEntryPage() {
           </Form>
         </CardContent>
       </Card>
+
+      {/* Dialog XÁC NHẬN trước khi ghi nhận */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận thông tin xe vào</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Vui lòng kiểm tra lại thông tin trước khi ghi nhận:</p>
+                <div className="bg-slate-50 p-4 rounded-md space-y-1 text-sm">
+                  {pendingValues?.licensePlate && (
+                    <div>
+                      Biển số: <b>{pendingValues.licensePlate}</b>
+                    </div>
+                  )}
+                  {pendingValues?.identifier && (
+                    <div>
+                      Identifier: <b>{pendingValues.identifier}</b>
+                    </div>
+                  )}
+                  <div>
+                    Loại xe:{" "}
+                    <b>
+                      {vehicleTypes.find(
+                        (t) => t.id === pendingValues?.vehicleTypeId
+                      )?.vietnameseName ||
+                        vehicleTypes.find(
+                          (t) => t.id === pendingValues?.vehicleTypeId
+                        )?.name}
+                    </b>
+                  </div>
+                  <div>
+                    Mã số thẻ: <b>{pendingValues?.cardId}</b>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmedSubmit}>
+              Xác nhận
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Dialog thông báo thành công */}
       <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>

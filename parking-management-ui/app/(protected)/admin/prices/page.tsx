@@ -204,13 +204,12 @@ export default function GetPricePage() {
                   <TableCell className="font-medium">
                     <div className="flex items-center justify-center gap-2">
                       <span
-                        className={`w-3 h-3 rounded-full ${
-                          price.type.name === "Bicycle"
+                        className={`w-3 h-3 rounded-full ${price.type.name === "Bicycle"
                             ? "bg-yellow-500"
                             : price.type.name === "Motorbike"
-                            ? "bg-blue-500"
-                            : "bg-green-500"
-                        }`}
+                              ? "bg-blue-500"
+                              : "bg-green-500"
+                          }`}
                       ></span>
                       {price.type.name === "Bicycle" ? "Xe đạp" : price.type.name === "Motorbike" ? "Xe máy" : "Xe tay ga"}
                     </div>

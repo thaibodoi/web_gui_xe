@@ -44,6 +44,7 @@ export default function AdminDashboard() {
     loading,
     error,
     currentStats,
+    inParkingCount,
     entriesCount,
     exitsCount,
     currentPage,
@@ -157,15 +158,14 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-4xl font-bold mb-5">
-              {currentStats?.total || 0}
+              {inParkingCount || 0}
             </div>
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 Số xe đang có trong bãi
               </p>
               <div className="text-xs font-medium bg-slate-100 rounded-full px-2 py-0.5">
-                {entriesCount - exitsCount > 0 ? "+" : ""}
-                {entriesCount - exitsCount} hôm nay
+                +{entriesCount} vào hôm nay
               </div>
             </div>
           </CardContent>
@@ -307,233 +307,233 @@ export default function AdminDashboard() {
               </CardDescription>
             </div>
           </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50 dark:bg-slate-800">
-                  <TableHead className="font-medium w-[5%] text-center py-3">
-                    STT
-                  </TableHead>
-                  <TableHead className="font-medium w-[20%] text-center py-3 pl-6">
-                    Biển số/Identifier
-                  </TableHead>
-                  <TableHead className="font-medium w-[15%] text-center py-3">
-                    Loại xe
-                  </TableHead>
-                  <TableHead className="font-medium w-[25%] text-center py-3">
-                    Thời gian
-                  </TableHead>
-                  <TableHead className="font-medium w-[15%] text-center py-3">
-                    Loại vé
-                  </TableHead>
-                  <TableHead className="font-medium w-[20%] text-center py-3 pr-6">
-                    Trạng thái
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {currentData.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center py-8 text-muted-foreground"
-                    >
-                      <div className="flex flex-col items-center justify-center">
-                        <Activity className="h-10 w-10 mb-2 opacity-20" />
-                        <span>Không có hoạt động nào</span>
-                        <span className="text-sm mt-1">
-                          Các hoạt động xe ra/vào sẽ hiển thị ở đây
-                        </span>
-                      </div>
-                    </TableCell>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50 dark:bg-slate-800">
+                    <TableHead className="font-medium w-[5%] text-center py-3">
+                      STT
+                    </TableHead>
+                    <TableHead className="font-medium w-[20%] text-center py-3 pl-6">
+                      Biển số/Identifier
+                    </TableHead>
+                    <TableHead className="font-medium w-[15%] text-center py-3">
+                      Loại xe
+                    </TableHead>
+                    <TableHead className="font-medium w-[25%] text-center py-3">
+                      Thời gian
+                    </TableHead>
+                    <TableHead className="font-medium w-[15%] text-center py-3">
+                      Loại vé
+                    </TableHead>
+                    <TableHead className="font-medium w-[20%] text-center py-3 pr-6">
+                      Trạng thái
+                    </TableHead>
                   </TableRow>
-                ) : (
-                  currentData.map((record, index) => (
-                    <TableRow
-                      key={index}
-                      className={
-                        index % 2 === 0
-                          ? "bg-white"
-                          : "bg-slate-50/50 dark:bg-slate-900/50"
-                      }
-                    >
-                      <TableCell className="text-center text-slate-500">
-                        {(currentPage - 1) * 5 + index + 1}
-                      </TableCell>
-                      <TableCell className="font-medium text-center pl-6">
-                        {record.licensePlate}
-                      </TableCell>
-                      <TableCell>
-                        {record.vehicleType === "Bicycle" && (
-                          <span className="flex items-center justify-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span>
-                            Xe đạp
+                </TableHeader>
+                <TableBody>
+                  {currentData.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
+                        <div className="flex flex-col items-center justify-center">
+                          <Activity className="h-10 w-10 mb-2 opacity-20" />
+                          <span>Không có hoạt động nào</span>
+                          <span className="text-sm mt-1">
+                            Các hoạt động xe ra/vào sẽ hiển thị ở đây
                           </span>
-                        )}
-                        {record.vehicleType === "Motorbike" && (
-                          <span className="flex items-center justify-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
-                            Xe máy
-                          </span>
-                        )}
-                        {record.vehicleType === "Scooter" && (
-                          <span className="flex items-center justify-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-                            Xe tay ga
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-center text-xs">
-                        {formatTimestamp(record.timestamp)}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {record.ticketType === "MONTHLY" ? (
-                          <div className="flex justify-center">
-                            <Badge
-                              variant="outline"
-                              className="bg-green-100 text-green-800 border-green-200"
-                            >
-                              Vé tháng
-                            </Badge>
-                          </div>
-                        ) : (
-                          <div className="flex justify-center">
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-100 text-blue-800 border-blue-200"
-                            >
-                              Vé ngày
-                            </Badge>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="pr-6 text-center">
-                        <div className="flex justify-center">
-                          {record.eventType === "ENTRY" ? (
-                            <Badge className="bg-green-100 text-green-800 border-green-200 flex items-center gap-1">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="m15 14 5-5-5-5"></path>
-                                <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
-                              </svg>
-                              Vào
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              >
-                                <path d="m9 10-5 5 5 5"></path>
-                                <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
-                              </svg>
-                              Ra
-                            </Badge>
-                          )}
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="py-4 border-t px-4">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() =>
-                        handlePageChange(Math.max(1, currentPage - 1))
-                      }
-                      className={
-                        currentPage === 1
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-
-                  {pageNumbers[0] > 1 && (
-                    <>
-                      <PaginationItem>
-                        <PaginationLink onClick={() => handlePageChange(1)}>
-                          1
-                        </PaginationLink>
-                      </PaginationItem>
-                      {pageNumbers[0] > 2 && (
-                        <PaginationItem>
-                          <PaginationEllipsis />
-                        </PaginationItem>
-                      )}
-                    </>
-                  )}
-
-                  {pageNumbers.map((pageNumber) => (
-                    <PaginationItem key={pageNumber}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(pageNumber)}
-                        isActive={pageNumber === currentPage}
+                  ) : (
+                    currentData.map((record, index) => (
+                      <TableRow
+                        key={index}
+                        className={
+                          index % 2 === 0
+                            ? "bg-white"
+                            : "bg-slate-50/50 dark:bg-slate-900/50"
+                        }
                       >
-                        {pageNumber}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
+                        <TableCell className="text-center text-slate-500">
+                          {(currentPage - 1) * 5 + index + 1}
+                        </TableCell>
+                        <TableCell className="font-medium text-center pl-6">
+                          {record.licensePlate}
+                        </TableCell>
+                        <TableCell>
+                          {record.vehicleType === "Bicycle" && (
+                            <span className="flex items-center justify-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span>
+                              Xe đạp
+                            </span>
+                          )}
+                          {record.vehicleType === "Motorbike" && (
+                            <span className="flex items-center justify-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>
+                              Xe máy
+                            </span>
+                          )}
+                          {record.vehicleType === "Scooter" && (
+                            <span className="flex items-center justify-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                              Xe tay ga
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-center text-xs">
+                          {formatTimestamp(record.timestamp)}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {record.ticketType === "MONTHLY" ? (
+                            <div className="flex justify-center">
+                              <Badge
+                                variant="outline"
+                                className="bg-green-100 text-green-800 border-green-200"
+                              >
+                                Vé tháng
+                              </Badge>
+                            </div>
+                          ) : (
+                            <div className="flex justify-center">
+                              <Badge
+                                variant="outline"
+                                className="bg-blue-100 text-blue-800 border-blue-200"
+                              >
+                                Vé ngày
+                              </Badge>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="pr-6 text-center">
+                          <div className="flex justify-center">
+                            {record.eventType === "ENTRY" ? (
+                              <Badge className="bg-green-100 text-green-800 border-green-200 flex items-center gap-1">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="m15 14 5-5-5-5"></path>
+                                  <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+                                </svg>
+                                Vào
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="m9 10-5 5 5 5"></path>
+                                  <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
+                                </svg>
+                                Ra
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
 
-                  {pageNumbers[pageNumbers.length - 1] < totalPages && (
-                    <>
-                      {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+            {totalPages > 1 && (
+              <div className="py-4 border-t px-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() =>
+                          handlePageChange(Math.max(1, currentPage - 1))
+                        }
+                        className={
+                          currentPage === 1
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+
+                    {pageNumbers[0] > 1 && (
+                      <>
                         <PaginationItem>
-                          <PaginationEllipsis />
+                          <PaginationLink onClick={() => handlePageChange(1)}>
+                            1
+                          </PaginationLink>
                         </PaginationItem>
-                      )}
-                      <PaginationItem>
+                        {pageNumbers[0] > 2 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                      </>
+                    )}
+
+                    {pageNumbers.map((pageNumber) => (
+                      <PaginationItem key={pageNumber}>
                         <PaginationLink
-                          onClick={() => handlePageChange(totalPages)}
+                          onClick={() => handlePageChange(pageNumber)}
+                          isActive={pageNumber === currentPage}
                         >
-                          {totalPages}
+                          {pageNumber}
                         </PaginationLink>
                       </PaginationItem>
-                    </>
-                  )}
+                    ))}
 
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() =>
-                        handlePageChange(Math.min(totalPages, currentPage + 1))
-                      }
-                      className={
-                        currentPage === totalPages
-                          ? "pointer-events-none opacity-50"
-                          : "cursor-pointer"
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    {pageNumbers[pageNumbers.length - 1] < totalPages && (
+                      <>
+                        {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && (
+                          <PaginationItem>
+                            <PaginationEllipsis />
+                          </PaginationItem>
+                        )}
+                        <PaginationItem>
+                          <PaginationLink
+                            onClick={() => handlePageChange(totalPages)}
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      </>
+                    )}
+
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          handlePageChange(Math.min(totalPages, currentPage + 1))
+                        }
+                        className={
+                          currentPage === totalPages
+                            ? "pointer-events-none opacity-50"
+                            : "cursor-pointer"
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

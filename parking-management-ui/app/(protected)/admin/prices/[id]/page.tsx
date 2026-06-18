@@ -85,8 +85,8 @@ const priceFormSchema = z.object({
     .string()
     .min(1, { message: "Giá tháng không được để trống" })
     .refine(
-      (val) => !isNaN(Number(val)) && Number(val) > 0,
-      "Giá phải là số dương"
+      (val) => !isNaN(Number(val)) && Number(val) >= 0,
+      "Giá phải là số dương hoặc 0"
     ),
 });
 
@@ -130,8 +130,9 @@ export default function UpdatePricePage() {
         const typesUrl = buildApiUrl(API_ENDPOINTS.PARKING.VEHICLE_TYPES);
         const typesData = await fetchWithAuth<VehicleTypesResponse>(typesUrl);
 
+        let matchingVehicleType: VehicleType | undefined;
         if (typesData && typesData.code === 1000) {
-          const matchingVehicleType = typesData.result.find(
+          matchingVehicleType = typesData.result.find(
             (type) => type.id === typeId
           );
 
@@ -152,7 +153,7 @@ export default function UpdatePricePage() {
           form.reset({
             dayPrice: priceData.result.dayPrice.toString(),
             nightPrice: priceData.result.nightPrice.toString(),
-            monthlyPrice: priceData.result.monthlyPrice.toString(),
+            monthlyPrice: matchingVehicleType?.name === "Bicycle" ? "0" : priceData.result.monthlyPrice.toString(),
           });
         }
       } catch (error) {
@@ -184,7 +185,7 @@ export default function UpdatePricePage() {
       const payload = {
         dayPrice: formValues.dayPrice,
         nightPrice: formValues.nightPrice,
-        monthlyPrice: formValues.monthlyPrice,
+        monthlyPrice: vehicleType?.name === "Bicycle" ? "0" : formValues.monthlyPrice,
       };
 
       const apiUrl = buildApiUrl(API_ENDPOINTS.PRICES.BY_ID(typeId));
@@ -310,32 +311,34 @@ export default function UpdatePricePage() {
               />
 
               {/* Giá tháng */}
-              <FormField
-                control={form.control}
-                name="monthlyPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center">
-                      <div className="p-1 rounded-full bg-green-100 mr-2">
-                        <Calendar className="h-4 w-4 text-green-600" />
-                      </div>
-                      Giá tháng (VNĐ)
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Nhập giá tháng mới"
-                        {...field}
-                        type="number"
-                        min="10000"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Áp dụng cho vé tháng với thời hạn 30 ngày
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {vehicleType?.name !== "Bicycle" && (
+                <FormField
+                  control={form.control}
+                  name="monthlyPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        <div className="p-1 rounded-full bg-green-100 mr-2">
+                          <Calendar className="h-4 w-4 text-green-600" />
+                        </div>
+                        Giá tháng (VNĐ)
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Nhập giá tháng mới"
+                          {...field}
+                          type="number"
+                          min="10000"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Áp dụng cho vé tháng với thời hạn 30 ngày
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </CardContent>
 
             <CardFooter className="flex justify-end space-x-2">
