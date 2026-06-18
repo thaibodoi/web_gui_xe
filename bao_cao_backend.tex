@@ -1,0 +1,160 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{booktabs}
+
+% Cấu hình hiển thị code Java đẹp hơn
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{frame=tb,
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+\title{\textbf{BÁO CÁO CHI TIẾT CÁC CHỨC NĂNG BACKEND\\HỆ THỐNG QUẢN LÝ BÃI XE}}
+\author{\textbf{Dành cho sinh viên báo cáo đề tài}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Giới thiệu chung}
+Tài liệu này tổng hợp toàn bộ các chức năng của hệ thống quản lý bãi gửi xe thông minh, mô tả cách thức dữ liệu đi từ giao diện người dùng (Frontend) xuống logic xử lý cụ thể dưới Backend viết bằng ngôn ngữ Java (khung phát triển Spring Boot). Tài liệu được cấu trúc dưới dạng LaTeX để người dùng dễ dàng đưa vào báo cáo học thuật hoặc luận văn tốt nghiệp.
+
+\section{Bản đồ mã nguồn cốt lõi (Source Code Directory)}
+Hệ thống được thiết kế theo kiến trúc phân lớp chuẩn của Spring Boot:
+\begin{itemize}
+    \item \textbf{Entity (Ngăn chứa dữ liệu):} Định nghĩa cấu trúc các bảng trong cơ sở dữ liệu. Ví dụ: \texttt{MissingReport.java}, \texttt{ParkingRecord.java}.
+    \item \textbf{Repository (Truy vấn dữ liệu):} Chịu trách nhiệm lấy/lưu thông tin từ Cơ sở dữ liệu lên.
+    \item \textbf{Service (Bộ não nghiệp vụ):} Nơi xử lý toàn bộ logic tính toán tiền xe, kiểm tra thẻ xe, phạt mất thẻ...
+    \item \textbf{Controller (Cổng tiếp nhận):} Tiếp nhận yêu cầu gọi API từ Frontend gửi lên và chuyển tiếp dữ liệu đến lớp Service.
+\end{itemize}
+
+\section{Chi tiết 7 chức năng cốt lõi \& Logic xử lý}
+
+\subsection{Chức năng 1: Đăng nhập \& Bảo mật hệ thống}
+\begin{itemize}
+    \item \textbf{Mô tả:} Nhân viên hoặc Quản trị viên nhập thông tin tài khoản để truy cập vào hệ thống.
+    \item \textbf{Quy trình xử lý:}
+    \begin{enumerate}
+        \item Hệ thống tìm tài khoản dựa trên tên đăng nhập trong bảng \texttt{Account}.
+        \item Sử dụng bộ mã hóa \texttt{passwordEncoder.matches()} để kiểm tra mật khẩu đã được băm (hash) bảo mật bằng thuật toán BCrypt.
+        \item Nếu chính xác, hệ thống sinh ra một mã \textbf{JWT Token} chứa thông tin quyền hạn gửi về cho Frontend. Giao diện sẽ đính kèm Token này trong các yêu cầu tiếp theo để không cần đăng nhập lại.
+    \end{enumerate}
+    \item \textbf{Tệp xử lý chính:} Hàm \texttt{login()} trong lớp \texttt{AuthenticationServiceImpl.java}.
+\end{itemize}
+
+\subsection{Chức năng 2: Cho xe vào bãi (Check-in)}
+\begin{itemize}
+    \item \textbf{Mô tả:} Nhận dạng biển số và quẹt thẻ cho xe đi vào.
+    \item \textbf{Quy trình xử lý:}
+    \begin{enumerate}
+        \item Hệ thống kiểm tra xem xe (theo biển số hoặc mã RFID) đã có mặt trong bãi đỗ chưa nhằm tránh lỗi quẹt trùng thẻ.
+        \item Hệ thống đối chiếu xem xe có bị nằm trong danh sách đen (Blacklist - do đang báo mất thẻ) hay không.
+        \item Kiểm tra xe có đăng ký vé tháng (\texttt{MONTHLY}) còn hạn sử dụng hay không để phân loại thẻ.
+        \item Tạo mới bản ghi đỗ xe vào cơ sở dữ liệu \texttt{ParkingRecord} kèm theo thông tin nhân viên cổng vào và thời gian thực.
+    \end{enumerate}
+    \item \textbf{Tệp xử lý chính:} Hàm \texttt{registerEntry()} trong lớp \texttt{ParkingServiceImpl.java}.
+\end{itemize}
+
+\subsection{Chức năng 3: Cho xe ra bãi (Check-out) \& Tính tiền tự động}
+\begin{itemize}
+    \item \textbf{Mô tả:} Quẹt thẻ đầu ra, tính phí gửi xe và giải phóng vị trí đỗ.
+    \item \textbf{Quy trình xử lý:}
+    \begin{enumerate}
+        \item Tìm bản ghi xe đang đỗ trong bãi thông qua mã thẻ và biển số xe.
+        \item Gọi hàm phụ \texttt{calculateParkingFee()} để tính toán phí:
+        \begin{itemize}
+            \item Nếu là \textbf{vé tháng}: Phí thanh toán mặc định là $0$ VNĐ.
+            \item Nếu là \textbf{vé ngày}: Đo hiệu số thời gian từ lúc vào tới lúc ra. Nhân số ngày đỗ thực tế với bảng giá. Với khoảng thời gian lẻ, đối chiếu khung giờ Ngày/Đêm (cấu hình động) để áp giá phù hợp.
+        \end{itemize}
+        \item Tạo hóa đơn và lưu trữ thông tin giao dịch vào bảng \texttt{Payment}.
+        \item Lưu thông tin xe xuất bãi vào bảng lịch sử \texttt{ParkingRecordHistory} và xóa bản ghi xe đỗ tại \texttt{ParkingRecord}.
+    \end{enumerate}
+    \item \textbf{Tệp xử lý chính:} Hàm \texttt{processExit()} và \texttt{calculateParkingFee()} trong \texttt{ParkingServiceImpl.java}.
+\end{itemize}
+
+\subsection{Chức năng 4: Đăng ký vé tháng (Monthly Registration)}
+\begin{itemize}
+    \item \textbf{Mô tả:} Đăng ký gửi xe dài hạn cho Sinh viên hoặc Giảng viên.
+    \item \textbf{Quy trình xử lý:}
+    \begin{enumerate}
+        \item Lưu trữ thông tin cá nhân khách hàng (MSSV, Khoa, Lớp, SĐT) và thông tin xe đăng ký.
+        \item Lấy đơn giá vé tháng trong bảng \texttt{Price} nhân với thời hạn gửi xe (số tháng) yêu cầu để ra tổng tiền cần thanh toán.
+        \item Khởi tạo bản ghi thanh toán \texttt{Payment} với loại giao dịch \texttt{MONTHLY}.
+        \item Kích hoạt vé tháng trong bảng \texttt{ActiveMonthlyRegistration} lưu rõ mốc ngày bắt đầu và ngày hết hạn.
+    \end{enumerate}
+    \item \textbf{Tệp xử lý chính:} Hàm \texttt{createMonthlyRegistration()} trong lớp \texttt{MonthlyRegistrationServiceImpl.java}.
+\end{itemize}
+
+\subsection{Chức năng 5: Báo mất thẻ xe (Missing Report)}
+\begin{itemize}
+    \item \textbf{Mô tả:} Xử lý khi khách hàng làm mất thẻ gửi xe vật lý.
+    \item \textbf{Quy trình xử lý:}
+    \begin{enumerate}
+        \item Nhân viên tìm kiếm xe đang đỗ trong bãi qua việc nhập biển số bằng tay.
+        \item Hệ thống xác minh xem thông tin xe khai báo (như loại xe) có trùng khớp thực tế hay không nhằm chống trộm xe.
+        \item Khởi tạo hóa đơn phạt đền thẻ trị giá $50,000$ VNĐ.
+        \item Chuyển bản ghi xe sang lịch sử \texttt{ParkingRecordHistory} gắn kèm hóa đơn phạt và xóa xe khỏi danh sách trong bãi.
+        \item Lưu toàn bộ hồ sơ xác minh (Họ tên chủ xe, CCCD, SĐT, mô tả màu xe, hiệu xe) vào bảng \texttt{MissingReport} để đối chiếu sau này.
+    \end{enumerate}
+    \item \textbf{Tệp xử lý chính:} Hàm \texttt{createMissingReport()} trong lớp \texttt{MissingReportServiceImpl.java}.
+\end{itemize}
+
+\subsection{Chức năng 6: Thống kê doanh thu \& lượt xe}
+\begin{itemize}
+    \item \textbf{Mô tả:} Admin xem biểu đồ, số liệu doanh thu và lượt xe ra vào theo từng tuần trong tháng.
+    \item \textbf{Quy trình xử lý:}
+    \begin{enumerate}
+        \item Admin chọn tháng và năm cần thống kê.
+        \item Hệ thống chia tháng làm các mốc tuần thực tế ($7$ ngày/tuần).
+        \item Sử dụng hàm \texttt{sumRevenueBetween} trong bảng \texttt{Payment} để cộng dồn doanh số thu được theo tuần.
+        \item Sử dụng hàm \texttt{sumVehicleBetween} trong bảng \texttt{ParkingRecordHistory} để đếm số lượt xe ra vào trong từng tuần.
+    \end{enumerate}
+    \item \textbf{Tệp xử lý chính:} Hàm \texttt{getMonthlyRevenue()} và \texttt{getMonthlyTraffic()} trong lớp \texttt{StatisticServiceImpl.java}.
+\end{itemize}
+
+\subsection{Chức năng 7: Cấu hình khung giờ hệ thống}
+\begin{itemize}
+    \item \textbf{Mô tả:} Thay đổi giờ bắt đầu ca Ngày và ca Đêm để áp giá tiền gửi xe.
+    \item \textbf{Quy trình xử lý:} Hệ thống lưu trữ các khung giờ này trong cấu hình. Khi chạy hàm tính tiền ở cổng ra, hệ thống tự động đọc giờ cấu hình động này để tính toán tiền cho khách hàng, giúp hệ thống hoạt động vô cùng linh hoạt.
+    \item \textbf{Tệp xử lý chính:} Lớp \texttt{ConfigServiceImpl.java}.
+\end{itemize}
+
+\section{Bộ câu hỏi phản biện thường gặp của Hội đồng}
+\begin{enumerate}
+    \item \textbf{Câu hỏi: Làm sao hệ thống biết xe nào là vé tháng khi nó quẹt thẻ ở cổng vào?}
+    \\ \textit{Trả lời:} Khi xe quẹt thẻ vào bãi, Backend sẽ tự động lấy biển số xe đó tìm kiếm trong bảng \texttt{ActiveMonthlyRegistration} (danh sách vé tháng đang hoạt động). Nếu tìm thấy bản ghi còn hạn sử dụng, hệ thống tự động gán loại vé là \texttt{MONTHLY}, ngược lại gán là \texttt{DAILY}.
+    
+    \item \textbf{Câu hỏi: Cơ chế giao dịch tài chính đảm bảo an toàn như thế nào?}
+    \\ \textit{Trả lời:} Mọi thao tác ghi nhận thanh toán và cập nhật trạng thái xe đều sử dụng nhãn \texttt{@Transactional} trong Spring Boot. Điều này đảm bảo tính toàn vẹn dữ liệu: Nếu bất kỳ một bước nào trong chuỗi giao dịch xảy ra lỗi, toàn bộ thao tác sẽ tự động được khôi phục (Rollback) lại trạng thái ban đầu, tránh việc mất tiền của khách hoặc sai lệch lịch sử.
+    
+    \item \textbf{Câu hỏi: Việc bảo mật thông tin tài khoản nhân viên được xử lý như thế nào?}
+    \\ \textit{Trả lời:} Tất cả mật khẩu của các tài khoản khi lưu trữ trong cơ sở dữ liệu đều được băm (hash) bằng thuật toán mã hóa một chiều \textbf{BCrypt} kết hợp với kỹ thuật tạo muối (salt). Điều này đảm bảo an toàn thông tin tối đa, ngay cả người có quyền quản trị cơ sở dữ liệu cũng không thể giải mã để lấy lại mật khẩu gốc.
+\end{enumerate}
+
+\end{document}
