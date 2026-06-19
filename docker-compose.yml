@@ -1,8 +1,8 @@
 version: "3.8"
 
 services:
-  backend:
-    build: ./parking-management-backend
+  app:
+    build: .
     container_name: parking-management-app
     ports:
       - "8080:8080"
@@ -13,6 +13,7 @@ services:
       - MYSQL_PASSWORD=password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - TZ=Asia/Ho_Chi_Minh
     depends_on:
       mysql:
         condition: service_healthy
@@ -20,7 +21,6 @@ services:
         condition: service_healthy
     networks:
       - parking-network
-    restart: unless-stopped
 
   mysql:
     image: mysql:8.0
@@ -28,16 +28,16 @@ services:
     environment:
       - MYSQL_DATABASE=parking_management
       - MYSQL_ROOT_PASSWORD=password
+      - TZ=Asia/Ho_Chi_Minh
     ports:
       - "3308:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./parking-management-backend/src/main/resources/db/init:/docker-entrypoint-initdb.d
-      - ./parking-management-backend/src/main/resources/db/init/01-schema.sql:/tmp/01-schema.sql
-      - ./parking-management-backend/src/main/resources/db/init/02-data.sql:/tmp/02-data.sql
+      - ./src/main/resources/db/init:/docker-entrypoint-initdb.d
+      - ./src/main/resources/db/init/01-schema.sql:/tmp/01-schema.sql
+      - ./src/main/resources/db/init/02-data.sql:/tmp/02-data.sql
     networks:
       - parking-network
-    restart: unless-stopped
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
     healthcheck:
       test:
@@ -61,17 +61,35 @@ services:
     container_name: parking-management-redis
     ports:
       - "6379:6379"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
     volumes:
       - redis-data:/data
     networks:
       - parking-network
-    restart: unless-stopped
     command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+      
+  phpmyadmin:
+    image: phpmyadmin:5.2-apache
+    container_name: parking-management-phpmyadmin
+    ports:
+      - "8085:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - UPLOAD_LIMIT=64M
+      - TZ=Asia/Ho_Chi_Minh
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - parking-network
+
 
   frontend:
     build: ./parking-management-ui
@@ -82,7 +100,6 @@ services:
       - backend
     networks:
       - parking-network
-    restart: unless-stopped
 
 networks:
   parking-network:
