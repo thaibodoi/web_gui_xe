@@ -30,6 +30,9 @@ export function useDashboard(itemsPerPage = 5) {
   const [recentActivity, setRecentActivity] = useState<VehicleRecord[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  // TỔNG số xe đang thực sự trong bãi (gồm cả xe vào từ hôm trước chưa ra)
+  const [inParkingCount, setInParkingCount] = useState(0);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -51,7 +54,7 @@ export function useDashboard(itemsPerPage = 5) {
         // Lưu trữ dữ liệu hoạt động
         const sortedActivity = [...data.result].sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
 
         setRecentActivity(sortedActivity);
@@ -60,15 +63,34 @@ export function useDashboard(itemsPerPage = 5) {
         // Tính toán số lượng xe hiện tại từ dữ liệu API
         const stats = calculateVehicleStats(data.result);
         setCurrentStats(stats);
+
+        // Lấy TỔNG số xe đang trong bãi (mọi ngày) từ danh sách xe đang đỗ.
+        // Đây mới là con số thực tế trong bãi, không chỉ tính theo hôm nay.
+        try {
+          const recordsUrl = buildApiUrl(API_ENDPOINTS.PARKING.RECORDS);
+          const recordsData = await fetchWithAuth<{
+            code: number;
+            result: unknown[];
+          }>(recordsUrl);
+          if (
+            recordsData &&
+            recordsData.code === 1000 &&
+            Array.isArray(recordsData.result)
+          ) {
+            setInParkingCount(recordsData.result.length);
+          }
+        } catch (e) {
+          console.error("Lỗi khi lấy tổng xe trong bãi:", e);
+        }
       } else {
         throw new Error(
-          "Lỗi khi lấy dữ liệu: " + (data.message || "Không xác định")
+          "Lỗi khi lấy dữ liệu: " + (data.message || "Không xác định"),
         );
       }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       setError(
-        err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải dữ liệu"
+        err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải dữ liệu",
       );
     } finally {
       setLoading(false);
@@ -87,7 +109,7 @@ export function useDashboard(itemsPerPage = 5) {
     // Duyệt qua tất cả các bản ghi theo thứ tự thời gian
     const sortedRecords = [...records].sort(
       (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
 
     for (const record of sortedRecords) {
@@ -188,20 +210,20 @@ export function useDashboard(itemsPerPage = 5) {
 
   // Tính số lượng xe vào và ra hôm nay
   const entriesCount = recentActivity.filter(
-    (record) => record.eventType === "ENTRY"
+    (record) => record.eventType === "ENTRY",
   ).length;
 
   const exitsCount = recentActivity.filter(
-    (record) => record.eventType === "EXIT"
+    (record) => record.eventType === "EXIT",
   ).length;
 
   // Đếm số lượng vào/ra theo loại xe
   const getVehicleTypeCount = (
     type: "Bicycle" | "Motorbike" | "Scooter",
-    event: "ENTRY" | "EXIT"
+    event: "ENTRY" | "EXIT",
   ) => {
     return recentActivity.filter(
-      (r) => r.vehicleType === type && r.eventType === event
+      (r) => r.vehicleType === type && r.eventType === event,
     ).length;
   };
 
@@ -209,6 +231,7 @@ export function useDashboard(itemsPerPage = 5) {
     loading: loading || fetchLoading,
     error,
     currentStats,
+    inParkingCount,
     recentActivity,
     currentPage,
     totalPages,
